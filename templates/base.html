@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titre %}Terrains à Yamoussoukro{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="entete">
+    <a class="logo" href="{{ url_for('liste') }}">Terrains Yamoussoukro</a>
+    <span class="entete-note">Annonces vérifiées avant publication</span>
+    <nav class="entete-nav" aria-label="Compte">
+      {% if utilisateur_courant %}
+        {% if utilisateur_courant['role'] in ('proprietaire', 'notaire') %}
+        <a href="{{ url_for('publier') }}">Publier un terrain</a>
+        {% endif %}
+        <a href="{{ url_for('mon_compte') }}">{{ utilisateur_courant['nom'] }}</a>
+        <form class="form-inline" method="post" action="{{ url_for('deconnexion') }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button class="lien-bouton" type="submit">Se déconnecter</button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('connexion') }}">Connexion</a>
+        <a class="bouton-clair" href="{{ url_for('inscription') }}">Créer un compte</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main class="contenu">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for categorie, message in messages %}
+      <p class="alerte {{ categorie }}" role="status">{{ message }}</p>
+      {% endfor %}
+    {% endwith %}
+    {% block contenu %}{% endblock %}
+  </main>
+  <footer class="pied">Projet de classe · version Sprint 2</footer>
+</body>
+</html>

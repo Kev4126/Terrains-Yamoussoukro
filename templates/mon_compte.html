@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block titre %}Mon compte · Terrains Yamoussoukro{% endblock %}
+{% block contenu %}
+<div class="formulaire">
+  <h1>Mon compte</h1>
+  <dl class="faits">
+    <div><dt>Nom affiché</dt><dd>{{ utilisateur_courant['nom'] }}</dd></div>
+    <div><dt>Profil</dt><dd>{{ roles.get(utilisateur_courant['role'], 'Administrateur') }}</dd></div>
+    <div><dt>Email</dt><dd>{{ utilisateur_courant['email'] }}</dd></div>
+    <div><dt>WhatsApp</dt><dd>+{{ utilisateur_courant['telephone_whatsapp'] }}</dd></div>
+    <div><dt>Inscrit le</dt><dd>{{ utilisateur_courant['date_inscription'] }}</dd></div>
+  </dl>
+  {% if utilisateur_courant['verifie'] %}
+    <p><span class="badge">Compte vérifié</span></p>
+  {% else %}
+    <p class="conseil">Votre compte n'a pas encore été vérifié par l'administrateur.
+    Les annonces d'un compte non vérifié s'affichent sans le badge « Vendeur vérifié ».</p>
+  {% endif %}
+  <p class="actions">
+    <a class="bouton" href="{{ url_for('modifier_profil') }}">Modifier mon profil</a>
+    {% if utilisateur_courant['role'] != 'administrateur' %}
+    <a class="bouton" href="{{ url_for('publier') }}">Publier un terrain</a>
+    <a class="bouton secondaire" href="{{ url_for('mes_annonces') }}">Mes annonces</a>
+    <a class="bouton secondaire" href="{{ url_for('profil', utilisateur_id=utilisateur_courant['id']) }}">Voir ma page publique</a>
+    {% endif %}
+  </p>
+  <p><a href="{{ url_for('liste') }}">← Retour aux terrains</a></p>
+</div>
+{% endblock %}

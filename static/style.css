@@ -1,0 +1,188 @@
+:root {
+  --vert: #14513f;
+  --vert-clair: #e3efe9;
+  --ocre: #8a5a00;
+  --ocre-clair: #f7ecd2;
+  --texte: #1b2420;
+  --texte-doux: #55615b;
+  --fond: #f6f7f4;
+  --carte: #ffffff;
+  --trait: #d9dfda;
+  --whatsapp: #128c4a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font: 16px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+h1, h2 { font-family: Georgia, "Times New Roman", serif; line-height: 1.2; margin: 0; }
+h1 { font-size: 1.9rem; }
+h2 { font-size: 1.15rem; }
+a { color: var(--vert); }
+a:focus-visible, .bouton:focus-visible {
+  outline: 3px solid var(--ocre);
+  outline-offset: 2px;
+}
+
+.entete {
+  background: var(--vert);
+  color: #fff;
+  padding: 0.9rem 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1.25rem;
+}
+.logo { color: #fff; font: 700 1.25rem Georgia, serif; text-decoration: none; }
+.entete-note { color: #cfe3da; font-size: 0.9rem; }
+
+.contenu { max-width: 1080px; margin: 0 auto; padding: 1.75rem 1.25rem 3rem; }
+.intro { color: var(--texte-doux); margin: 0.5rem 0 1.5rem; min-height: 1.5rem; max-width: 60ch; }
+
+.grille {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.carte { background: var(--carte); border: 1px solid var(--trait); border-radius: 8px; overflow: hidden; }
+.carte:hover { border-color: var(--vert); }
+.carte-lien { display: block; color: inherit; text-decoration: none; height: 100%; }
+.carte-corps { padding: 0.9rem 1rem 1.1rem; }
+.carte-corps h2 { margin-bottom: 0.4rem; }
+
+/* Visuel de remplacement tant qu'il n'y a pas de photo : une parcelle dessinée en CSS */
+.parcelle {
+  height: 140px;
+  background:
+    linear-gradient(135deg, rgba(20,81,63,.0) 0 48%, rgba(20,81,63,.18) 48% 52%, rgba(20,81,63,0) 52%),
+    var(--vert-clair);
+  border-bottom: 1px solid var(--trait);
+  display: flex; align-items: flex-end; padding: 0.6rem 0.8rem;
+}
+.parcelle span { font-weight: 600; color: var(--vert); }
+.parcelle.grande { height: 320px; border: 1px solid var(--trait); border-radius: 8px; }
+
+.prix { margin: 0; font-weight: 700; color: var(--vert); font-size: 1.15rem; }
+.prix.gros { font-size: 1.6rem; margin: 0.5rem 0 1rem; }
+.details { margin: 0.2rem 0 0.7rem; color: var(--texte-doux); font-size: 0.92rem; }
+
+.badges { margin: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.badge {
+  display: inline-block; font-size: 0.8rem; padding: 0.15rem 0.55rem; border-radius: 999px;
+  background: var(--ocre-clair); color: var(--ocre);
+}
+.badge.neutre { background: var(--vert-clair); color: var(--vert); }
+
+.retour { margin: 0 0 1rem; }
+.fiche { display: grid; gap: 2rem; grid-template-columns: 1fr; }
+@media (min-width: 820px) { .fiche { grid-template-columns: 1.1fr 1fr; align-items: start; } }
+.fiche-visuel img { width: 100%; border-radius: 8px; display: block; }
+.lieu { color: var(--texte-doux); margin: 0.3rem 0 0; }
+
+.faits { margin: 0 0 1.25rem; border-top: 1px solid var(--trait); }
+.faits div { display: flex; justify-content: space-between; gap: 1rem; padding: 0.55rem 0; border-bottom: 1px solid var(--trait); }
+.faits dt { color: var(--texte-doux); }
+.faits dd { margin: 0; font-weight: 600; text-align: right; }
+.description { max-width: 60ch; }
+
+.vendeur { background: var(--carte); border: 1px solid var(--trait); border-radius: 8px; padding: 1rem 1.1rem; margin-top: 1.5rem; }
+.vendeur p { margin: 0.5rem 0 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.9rem !important; }
+.bouton {
+  display: inline-block; padding: 0.7rem 1.1rem; border-radius: 6px; text-decoration: none;
+  font-weight: 600; background: var(--vert); color: #fff;
+}
+.bouton.whatsapp { background: var(--whatsapp); }
+.bouton.secondaire { background: transparent; color: var(--vert); border: 1px solid var(--vert); }
+.conseil { font-size: 0.88rem; color: var(--texte-doux); }
+
+.vide { background: var(--carte); border: 1px dashed var(--trait); border-radius: 8px; padding: 2rem 1.25rem; max-width: 60ch; }
+.pied { text-align: center; color: var(--texte-doux); font-size: 0.85rem; padding: 1.5rem 1rem 2rem; }
+
+/* Filtres de la liste */
+.filtres {
+  margin: 1.25rem 0 0.5rem;
+  padding: 1rem 1.1rem;
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.9rem 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  align-items: end;
+}
+.champ label { display: block; font-size: 0.85rem; color: var(--texte-doux); margin-bottom: 0.25rem; }
+.champ select, .champ input {
+  width: 100%; padding: 0.55rem 0.6rem; font: inherit; color: var(--texte);
+  background: #fff; border: 1px solid #b9c3bd; border-radius: 6px;
+}
+.champ select:focus-visible, .champ input:focus-visible { outline: 3px solid var(--ocre); outline-offset: 1px; }
+.champ.boutons { display: flex; align-items: center; gap: 1rem; }
+.champ.boutons .bouton { border: 0; cursor: pointer; font: inherit; font-weight: 600; }
+.reinit { color: var(--texte-doux); }
+
+/* Comptes : en-tête, formulaires, messages */
+.entete-nav { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+.entete-nav a { color: #fff; }
+.entete-nav .bouton-clair {
+  display: inline-block; padding: 0.4rem 0.8rem; border-radius: 6px; text-decoration: none;
+  background: #fff; color: var(--vert); font-weight: 600;
+}
+.entete-nav a:focus-visible, .lien-bouton:focus-visible { outline: 3px solid #f3d27a; outline-offset: 2px; }
+.form-inline { margin: 0; }
+.lien-bouton {
+  background: none; border: 0; padding: 0; font: inherit; color: #fff;
+  text-decoration: underline; cursor: pointer;
+}
+
+.formulaire { max-width: 520px; margin: 0 auto; }
+.formulaire .champ { margin-bottom: 1rem; }
+.formulaire fieldset.champ { border: 0; padding: 0; margin: 0 0 1rem; }
+.formulaire legend { font-size: 0.85rem; color: var(--texte-doux); padding: 0; margin-bottom: 0.25rem; }
+.radios { display: flex; gap: 1.5rem; }
+.radios label { display: flex; align-items: center; gap: 0.4rem; font-size: 1rem; color: var(--texte); margin: 0; }
+.radios input { width: auto; }
+.formulaire .bouton { border: 0; cursor: pointer; font: inherit; font-weight: 600; }
+
+.alerte { padding: 0.75rem 1rem; border-radius: 6px; margin: 0 0 1.25rem; border: 1px solid var(--trait); background: var(--carte); }
+.alerte p { margin: 0; }
+.alerte ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+.alerte.succes { background: var(--vert-clair); border-color: var(--vert); color: var(--vert); }
+.alerte.info { background: var(--ocre-clair); border-color: #d9b866; color: #5c3b00; }
+.alerte.erreur { background: #fbe9e7; border-color: #b3261e; color: #7a1c15; }
+
+/* Page profil et modification du profil */
+.profil-entete { background: var(--carte); border: 1px solid var(--trait); border-radius: 8px; padding: 1.25rem 1.4rem; margin-bottom: 2rem; }
+.profil-entete .badges { margin: 0.6rem 0 0.2rem; }
+.presentation { white-space: pre-line; max-width: 65ch; margin: 1rem 0; }
+.vide-texte { color: var(--texte-doux); font-style: italic; }
+.titre-section { font-size: 1.35rem; margin: 0 0 1rem; }
+.champ textarea {
+  width: 100%; padding: 0.55rem 0.6rem; font: inherit; color: var(--texte);
+  background: #fff; border: 1px solid #b9c3bd; border-radius: 6px; resize: vertical;
+}
+.champ textarea:focus-visible { outline: 3px solid var(--ocre); outline-offset: 1px; }
+.formulaire .bouton.secondaire { border: 1px solid var(--vert); }
+
+/* Photos et annonces */
+.carte-photo { display: block; width: 100%; height: 140px; object-fit: cover; border-bottom: 1px solid var(--trait); }
+.photo-principale { width: 100%; max-height: 420px; object-fit: cover; border-radius: 8px; display: block; }
+.miniatures { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
+.miniatures img { width: 100%; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid var(--trait); }
+
+.liste-annonces { list-style: none; margin: 1.25rem 0 0; padding: 0; display: grid; gap: 0.75rem; }
+.annonce {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem 1rem;
+  background: var(--carte); border: 1px solid var(--trait); border-radius: 8px; padding: 0.9rem 1.1rem;
+}
+.annonce h2 { margin: 0 0 0.2rem; }
+.annonce .details { margin: 0; }
+.badge.statut-en_attente { background: var(--ocre-clair); color: var(--ocre); }
+.badge.statut-publie { background: var(--vert-clair); color: var(--vert); }
+.badge.statut-refuse { background: #fbe9e7; color: #7a1c15; }
+.badge.statut-vendu { background: #e8eaed; color: #3c4043; }

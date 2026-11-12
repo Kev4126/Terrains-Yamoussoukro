@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block titre %}Connexion · Terrains Yamoussoukro{% endblock %}
+{% block contenu %}
+<div class="formulaire">
+  <h1>Connexion</h1>
+
+  {% if erreur %}
+  <div class="alerte erreur" role="alert"><p>{{ erreur }}</p></div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('connexion') }}" novalidate>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="champ">
+      <label for="email">Adresse email</label>
+      <input id="email" name="email" type="email" autocomplete="email" required value="{{ email }}">
+    </div>
+    <div class="champ">
+      <label for="mot_de_passe">Mot de passe</label>
+      <input id="mot_de_passe" name="mot_de_passe" type="password" autocomplete="current-password" required>
+    </div>
+    <p><button class="bouton" type="submit">Se connecter</button></p>
+  </form>
+  <p>Pas encore de compte ? <a href="{{ url_for('inscription') }}">Créer un compte</a></p>
+</div>
+{% endblock %}

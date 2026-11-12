@@ -1,0 +1,18 @@
+<li class="carte">
+  <a class="carte-lien" href="{{ url_for('fiche', terrain_id=t['id']) }}">
+    {% if t['photo_url'] %}
+    <img class="carte-photo" src="{{ t['photo_url'] }}" alt="" loading="lazy">
+    {% else %}
+    <div class="parcelle" aria-hidden="true"><span>{{ t['quartier'] }}</span></div>
+    {% endif %}
+    <div class="carte-corps">
+      <h2>{{ t['titre'] }}</h2>
+      <p class="prix">{{ t['prix']|fcfa }}</p>
+      <p class="details">{{ t['superficie']|m2 }} · {{ (t['prix'] // t['superficie'])|fcfa }} le m²</p>
+      <p class="badges">
+        <span class="badge">{{ t['titre_foncier'] }}</span>
+        <span class="badge neutre">{{ t['type_terrain'] }}</span>
+      </p>
+    </div>
+  </a>
+</li>

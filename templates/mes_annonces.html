@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block titre %}Mes annonces · Terrains Yamoussoukro{% endblock %}
+{% block contenu %}
+<h1>Mes annonces</h1>
+{% if utilisateur_courant['role'] in roles %}
+<p class="actions"><a class="bouton" href="{{ url_for('publier') }}">Publier un terrain</a></p>
+{% endif %}
+
+{% if annonces %}
+<ul class="liste-annonces">
+  {% for a in annonces %}
+  <li class="annonce">
+    <div>
+      <h2>
+        {% if a['statut'] == 'publie' %}<a href="{{ url_for('fiche', terrain_id=a['id']) }}">{{ a['titre'] }}</a>
+        {% else %}{{ a['titre'] }}{% endif %}
+      </h2>
+      <p class="details">{{ a['quartier'] }} · {{ a['superficie']|m2 }} · {{ a['prix']|fcfa }} · ajoutée le {{ a['date_creation'] }}</p>
+    </div>
+    <span class="badge statut-{{ a['statut'] }}">{{ statuts[a['statut']] }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="vide">
+  <p>Vous n'avez pas encore d'annonce.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block titre %}{{ membre['nom'] }} · Terrains Yamoussoukro{% endblock %}
+{% block contenu %}
+<section class="profil-entete">
+  <h1>{{ membre['nom'] }}</h1>
+  <p class="badges">
+    <span class="badge neutre">{{ roles[membre['role']] }}</span>
+    {% if membre['verifie'] %}<span class="badge">Compte vérifié</span>{% endif %}
+  </p>
+  <p class="lieu">Membre depuis le {{ membre['date_inscription'] }}</p>
+
+  {% if membre['presentation'] %}
+    <p class="presentation">{{ membre['presentation'] }}</p>
+  {% else %}
+    <p class="presentation vide-texte">Ce membre n'a pas encore rédigé de présentation.</p>
+  {% endif %}
+
+  <p class="actions">
+    <a class="bouton whatsapp" href="{{ whatsapp_url }}" target="_blank" rel="noopener">Écrire sur WhatsApp</a>
+  </p>
+</section>
+
+<h2 class="titre-section">Terrains publiés ({{ terrains|length }})</h2>
+{% if terrains %}
+<ul class="grille">
+  {% for t in terrains %}
+  {% include "_carte.html" %}
+  {% endfor %}
+</ul>
+{% else %}
+<div class="vide">
+  <p>Aucun terrain publié pour le moment.</p>
+</div>
+{% endif %}
+{% endblock %}

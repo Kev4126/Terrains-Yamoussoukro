@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block titre %}Créer un compte · Terrains Yamoussoukro{% endblock %}
+{% block contenu %}
+<div class="formulaire">
+  <h1>Créer un compte</h1>
+  <p class="intro">Réservé aux propriétaires et aux notaires qui souhaitent publier des terrains.
+  Votre compte est vérifié par l'administrateur avant de recevoir le badge « vérifié ».</p>
+
+  {% if erreurs %}
+  <div class="alerte erreur" role="alert">
+    <p><strong>Le formulaire contient des erreurs :</strong></p>
+    <ul>{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('inscription') }}" novalidate>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+    <fieldset class="champ">
+      <legend>Vous êtes</legend>
+      <div class="radios">
+        {% for cle, libelle in roles.items() %}
+        <label><input type="radio" name="role" value="{{ cle }}" {{ 'checked' if valeurs['role'] == cle }}> {{ libelle }}</label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <div class="champ">
+      <label for="nom">Nom affiché (personne ou étude notariale)</label>
+      <input id="nom" name="nom" type="text" autocomplete="name" required value="{{ valeurs['nom'] }}">
+    </div>
+    <div class="champ">
+      <label for="email">Adresse email</label>
+      <input id="email" name="email" type="email" autocomplete="email" required value="{{ valeurs['email'] }}">
+    </div>
+    <div class="champ">
+      <label for="telephone">Numéro WhatsApp</label>
+      <input id="telephone" name="telephone" type="tel" autocomplete="tel" placeholder="07 00 00 00 00" required value="{{ valeurs['telephone'] }}">
+    </div>
+    <div class="champ">
+      <label for="mot_de_passe">Mot de passe (8 caractères minimum)</label>
+      <input id="mot_de_passe" name="mot_de_passe" type="password" autocomplete="new-password" required>
+    </div>
+    <div class="champ">
+      <label for="confirmation">Confirmer le mot de passe</label>
+      <input id="confirmation" name="confirmation" type="password" autocomplete="new-password" required>
+    </div>
+
+    <p><button class="bouton" type="submit">Créer mon compte</button></p>
+  </form>
+  <p>Déjà un compte ? <a href="{{ url_for('connexion') }}">Se connecter</a></p>
+</div>
+{% endblock %}

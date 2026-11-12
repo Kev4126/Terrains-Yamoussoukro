@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block titre %}{{ terrain['titre'] }} · Terrains Yamoussoukro{% endblock %}
+{% block contenu %}
+<p class="retour"><a href="{{ url_for('liste') }}">← Tous les terrains</a></p>
+
+<article class="fiche">
+  <div class="fiche-visuel">
+    {% if photos %}
+      <img class="photo-principale" src="{{ photos[0]['url'] }}" alt="Photo du terrain : {{ terrain['titre'] }}">
+      {% if photos|length > 1 %}
+      <div class="miniatures">
+        {% for p in photos[1:] %}
+        <img src="{{ p['url'] }}" alt="Autre photo du terrain : {{ terrain['titre'] }}" loading="lazy">
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% else %}
+      <div class="parcelle grande" aria-hidden="true"><span>{{ terrain['quartier'] }}</span></div>
+    {% endif %}
+  </div>
+
+  <div class="fiche-infos">
+    <h1>{{ terrain['titre'] }}</h1>
+    <p class="lieu">{{ terrain['quartier'] }}, {{ terrain['ville'] }}</p>
+    <p class="prix gros">{{ terrain['prix']|fcfa }}</p>
+
+    <dl class="faits">
+      <div><dt>Superficie</dt><dd>{{ terrain['superficie']|m2 }}</dd></div>
+      <div><dt>Prix au m²</dt><dd>{{ (terrain['prix'] // terrain['superficie'])|fcfa }}</dd></div>
+      <div><dt>Titre foncier</dt><dd>{{ terrain['titre_foncier'] }}</dd></div>
+      <div><dt>Type de terrain</dt><dd>{{ terrain['type_terrain'] }}</dd></div>
+      <div><dt>Publié le</dt><dd>{{ terrain['date_creation'] }}</dd></div>
+    </dl>
+
+    {% if terrain['description'] %}
+    <p class="description">{{ terrain['description'] }}</p>
+    {% endif %}
+
+    <section class="vendeur">
+      <h2>Vendeur</h2>
+      <p><a href="{{ url_for('profil', utilisateur_id=terrain['id_vendeur']) }}">{{ terrain['vendeur'] }}</a>
+        <span class="badge neutre">{{ 'Notaire' if terrain['vendeur_role'] == 'notaire' else 'Propriétaire' }}</span>
+        {% if terrain['vendeur_verifie'] %}<span class="badge">Vendeur vérifié</span>{% endif %}
+      </p>
+      <p class="actions">
+        <a class="bouton whatsapp" href="{{ whatsapp_url }}" target="_blank" rel="noopener">Écrire sur WhatsApp</a>
+        <a class="bouton secondaire" href="tel:+{{ terrain['telephone'] }}">Appeler le vendeur</a>
+      </p>
+      <p class="conseil">Avant tout paiement, demandez à voir le titre foncier et visitez le terrain.</p>
+    </section>
+  </div>
+</article>
+{% endblock %}

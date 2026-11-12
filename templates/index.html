@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Terrains à vendre à Yamoussoukro</h1>
+
+<form class="filtres" method="get" action="{{ url_for('liste') }}">
+  <div class="champ">
+    <label for="quartier">Quartier</label>
+    <select id="quartier" name="quartier">
+      <option value="">Tous</option>
+      {% for q in quartiers %}
+      <option value="{{ q['id'] }}" {{ 'selected' if f['quartier'] == q['id']|string }}>{{ q['nom'] }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="champ">
+    <label for="titre">Titre foncier</label>
+    <select id="titre" name="titre">
+      <option value="">Tous</option>
+      {% for t in titres %}
+      <option value="{{ t['id'] }}" {{ 'selected' if f['titre'] == t['id']|string }}>{{ t['libelle'] }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="champ">
+    <label for="type">Type de terrain</label>
+    <select id="type" name="type">
+      <option value="">Tous</option>
+      {% for t in types %}
+      <option value="{{ t['id'] }}" {{ 'selected' if f['type'] == t['id']|string }}>{{ t['libelle'] }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="champ">
+    <label for="prix_max">Prix maximum (FCFA)</label>
+    <input id="prix_max" name="prix_max" type="number" min="0" inputmode="numeric" placeholder="ex. 20000000" value="{{ f['prix_max'] }}">
+  </div>
+  <div class="champ">
+    <label for="superficie_min">Superficie minimum (m²)</label>
+    <input id="superficie_min" name="superficie_min" type="number" min="0" inputmode="numeric" placeholder="ex. 500" value="{{ f['superficie_min'] }}">
+  </div>
+  <div class="champ">
+    <label for="tri">Trier par</label>
+    <select id="tri" name="tri">
+      {% for cle, (libelle, _) in tris.items() %}
+      <option value="{{ cle }}" {{ 'selected' if tri == cle }}>{{ libelle }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="champ boutons">
+    <button class="bouton" type="submit">Filtrer</button>
+    <a class="reinit" href="{{ url_for('liste') }}">Réinitialiser</a>
+  </div>
+</form>
+
+<p class="intro">
+  {% if terrains %}
+    {{ terrains|length }} terrain{{ 's' if terrains|length > 1 }}
+    {{ 'correspondent à vos critères' if filtres_actifs and terrains|length > 1 else ('correspond à vos critères' if filtres_actifs else 'disponible' ~ ('s' if terrains|length > 1 else '')) }}.
+  {% endif %}
+</p>
+
+{% if terrains %}
+<ul class="grille">
+  {% for t in terrains %}
+  {% include "_carte.html" %}
+  {% endfor %}
+</ul>
+{% elif filtres_actifs %}
+<div class="vide">
+  <p>Aucun terrain ne correspond à ces critères.</p>
+  <p>Essayez d'élargir le prix, la superficie ou le quartier, ou <a href="{{ url_for('liste') }}">réinitialisez les filtres</a>.</p>
+</div>
+{% else %}
+<div class="vide">
+  <p>Aucun terrain n'est publié pour le moment.</p>
+  <p>Les annonces apparaissent ici dès que l'administrateur les valide.</p>
+</div>
+{% endif %}
+{% endblock %}

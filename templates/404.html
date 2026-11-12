@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block titre %}Terrain introuvable · Terrains Yamoussoukro{% endblock %}
+{% block contenu %}
+<div class="vide">
+  <h1>Terrain introuvable</h1>
+  <p>Cette annonce n'existe pas ou n'est plus disponible.</p>
+  <p><a class="bouton" href="{{ url_for('liste') }}">Voir tous les terrains</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block titre %}{{ titre }} · Terrains Yamoussoukro{% endblock %}
+{% block contenu %}
+<div class="vide">
+  <h1>{{ titre }}</h1>
+  <p>{{ message }}</p>
+  <p><a class="bouton" href="{{ url_for('liste') }}">Retour à l'accueil</a></p>
+</div>
+{% endblock %}

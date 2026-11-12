@@ -1,0 +1,11 @@
+# Base de données locale : elle se recrée avec schema.sql + donnees_initiales.sql
+*.db
+# Clé secrète des sessions de connexion : générée automatiquement, ne jamais publier
+secret.key
+__pycache__/
+venv/
+.venv/
+# Rapports de couverture de tests
+.coverage
+htmlcov/
+uploads/
