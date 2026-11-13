@@ -12,6 +12,9 @@
     <span class="entete-note">Annonces vérifiées avant publication</span>
     <nav class="entete-nav" aria-label="Compte">
       {% if utilisateur_courant %}
+        {% if utilisateur_courant['role'] == 'administrateur' %}
+        <a href="{{ url_for('admin') }}">Administration</a>
+        {% endif %}
         {% if utilisateur_courant['role'] in ('proprietaire', 'notaire') %}
         <a href="{{ url_for('publier') }}">Publier un terrain</a>
         {% endif %}
@@ -34,6 +37,6 @@
     {% endwith %}
     {% block contenu %}{% endblock %}
   </main>
-  <footer class="pied">Projet de classe · version Sprint 2</footer>
+  <footer class="pied">Projet de classe · version Sprint 3</footer>
 </body>
 </html>

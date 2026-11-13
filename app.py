@@ -1,4 +1,4 @@
-"""Plateforme de vente de terrains à Yamoussoukro : Sprint 2 (filtres, comptes, profils, publication).
+"""Plateforme de vente de terrains à Yamoussoukro : Sprint 3 (administration, modification des annonces).
 
 Ce que fait cette version :
   - liste des terrains publiés avec filtres, fiche d'un terrain, contact WhatsApp
@@ -6,6 +6,8 @@ Ce que fait cette version :
   - page « Mon compte » (réservée aux utilisateurs connectés) et modification du profil
   - page profil publique d'un propriétaire ou d'un notaire, avec ses terrains
   - publication d'un terrain avec photos (statut « en attente » jusqu'à validation) et suivi des annonces
+  - espace administrateur : valider ou refuser les annonces, vérifier les comptes
+  - modification, vente et suppression d'une annonce par son propriétaire
 
 Lancer :  python app.py   puis ouvrir http://127.0.0.1:5000
 """
@@ -110,6 +112,17 @@ def connexion_requise(vue):
     return enveloppe
 
 
+def admin_requis(vue):
+    """Décorateur : réservé à l'administrateur (connexion d'abord, puis contrôle du rôle)."""
+    @connexion_requise
+    @functools.wraps(vue)
+    def enveloppe(*args, **kwargs):
+        if utilisateur_courant()["role"] != "administrateur":
+            abort(403)
+        return vue(*args, **kwargs)
+    return enveloppe
+
+
 def csrf_token():
     """Jeton secret placé dans chaque formulaire : empêche un autre site de soumettre un formulaire à votre place."""
     if "csrf" not in session:
@@ -135,6 +148,7 @@ def variables_communes():
 # ---------- Validation des champs ----------
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+NOM_PHOTO_RE = re.compile(r"^[0-9a-f]{32}\.(jpg|png|webp)$")
 ROLES_INSCRIPTION = {"proprietaire": "Propriétaire", "notaire": "Notaire"}
 PRESENTATION_MAX = 600
 DUMMY_HASH = generate_password_hash("mot de passe factice", method=METHODE_HASH)
@@ -431,6 +445,89 @@ def type_image(octets):
     return None
 
 
+CHAMPS_ANNONCE = ("titre", "description", "superficie", "prix", "quartier", "titre_foncier", "type")
+
+
+def listes_formulaire(db):
+    """Les trois listes de choix du formulaire : quartiers, titres fonciers, types de terrain."""
+    return (db.execute("SELECT id, nom FROM quartier ORDER BY nom").fetchall(),
+            db.execute("SELECT id, libelle FROM type_titre ORDER BY id").fetchall(),
+            db.execute("SELECT id, libelle FROM type_terrain ORDER BY id").fetchall())
+
+
+def lire_formulaire_annonce(quartiers, titres, types, photos_gardees=0):
+    """Lit et contrôle le formulaire d'une annonce (publication ou modification).
+
+    Retourne (valeurs, erreurs, superficie, prix, photos) ; `photos` contient les
+    nouvelles photos valides sous la forme (octets, extension)."""
+    valeurs = {cle: request.form.get(cle, "").strip() for cle in CHAMPS_ANNONCE}
+    superficie = lire_entier(valeurs["superficie"])
+    prix = lire_entier(valeurs["prix"])
+    erreurs = []
+
+    if not 5 <= len(valeurs["titre"]) <= 100:
+        erreurs.append("Le titre doit contenir entre 5 et 100 caractères.")
+    if len(valeurs["description"]) > DESCRIPTION_MAX:
+        erreurs.append(f"La description ne doit pas dépasser {DESCRIPTION_MAX} caractères.")
+    if superficie is None or not 1 <= superficie <= SUPERFICIE_MAX:
+        erreurs.append("La superficie doit être un nombre entier de m² (au moins 1).")
+    if prix is None or not 1 <= prix <= PRIX_MAX:
+        erreurs.append("Le prix doit être un nombre entier de FCFA (au moins 1).")
+    if valeurs["quartier"] not in {str(q["id"]) for q in quartiers}:
+        erreurs.append("Choisissez un quartier dans la liste.")
+    if valeurs["titre_foncier"] not in {str(t["id"]) for t in titres}:
+        erreurs.append("Choisissez un type de titre foncier dans la liste.")
+    if valeurs["type"] not in {str(t["id"]) for t in types}:
+        erreurs.append("Choisissez un type de terrain dans la liste.")
+
+    photos = []
+    fichiers = [f for f in request.files.getlist("photos") if f and f.filename]
+    if len(fichiers) + photos_gardees > PHOTOS_MAX:
+        erreurs.append(f"Une annonce peut avoir {PHOTOS_MAX} photos au maximum.")
+    else:
+        for fichier in fichiers:
+            octets = fichier.read(PHOTO_TAILLE_MAX + 1)
+            extension = type_image(octets)
+            if len(octets) > PHOTO_TAILLE_MAX:
+                erreurs.append(f"La photo « {fichier.filename} » dépasse 3 Mo.")
+            elif extension is None:
+                erreurs.append(f"« {fichier.filename} » n'est pas une image JPG, PNG ou WebP.")
+            else:
+                photos.append((octets, extension))
+    return valeurs, erreurs, superficie, prix, photos
+
+
+def enregistrer_photos(db, id_terrain, photos):
+    """Écrit les fichiers dans uploads/ (nom aléatoire) et les relie à l'annonce."""
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    for octets, extension in photos:
+        nom_fichier = f"{secrets.token_hex(16)}.{extension}"   # jamais le nom donné par l'utilisateur
+        with open(os.path.join(UPLOAD_DIR, nom_fichier), "wb") as f:
+            f.write(octets)
+        db.execute("INSERT INTO photo (url, id_terrain) VALUES (?, ?)",
+                   (f"/photos/{nom_fichier}", id_terrain))
+
+
+def supprimer_fichier_photo(url):
+    """Efface le fichier d'une photo (seulement s'il porte un nom géré par le site)."""
+    nom = url.rsplit("/", 1)[-1]
+    if NOM_PHOTO_RE.match(nom):
+        try:
+            os.remove(os.path.join(UPLOAD_DIR, nom))
+        except FileNotFoundError:
+            pass
+
+
+def nb_en_attente(db, id_vendeur):
+    return db.execute("SELECT COUNT(*) FROM terrain WHERE id_vendeur = ? AND statut = 'en_attente'",
+                      (id_vendeur,)).fetchone()[0]
+
+
+def message_limite():
+    return (f"Vous avez déjà {MAX_EN_ATTENTE} annonces en attente de validation. "
+            "Attendez qu'elles soient traitées avant d'en publier d'autres.")
+
+
 @app.route("/publier", methods=["GET", "POST"])
 @connexion_requise
 def publier():
@@ -438,54 +535,13 @@ def publier():
     if utilisateur["role"] not in ROLES_INSCRIPTION:
         abort(403)                     # l'administrateur ne publie pas de terrain
     db = get_db()
-    quartiers = db.execute("SELECT id, nom FROM quartier ORDER BY nom").fetchall()
-    titres = db.execute("SELECT id, libelle FROM type_titre ORDER BY id").fetchall()
-    types = db.execute("SELECT id, libelle FROM type_terrain ORDER BY id").fetchall()
-    valeurs = {"titre": "", "description": "", "superficie": "", "prix": "",
-               "quartier": "", "titre_foncier": "", "type": ""}
+    quartiers, titres, types = listes_formulaire(db)
+    valeurs = {cle: "" for cle in CHAMPS_ANNONCE}
     erreurs = []
     if request.method == "POST":
-        valeurs = {cle: request.form.get(cle, "").strip() for cle in valeurs}
-        superficie = lire_entier(valeurs["superficie"])
-        prix = lire_entier(valeurs["prix"])
-
-        if not 5 <= len(valeurs["titre"]) <= 100:
-            erreurs.append("Le titre doit contenir entre 5 et 100 caractères.")
-        if len(valeurs["description"]) > DESCRIPTION_MAX:
-            erreurs.append(f"La description ne doit pas dépasser {DESCRIPTION_MAX} caractères.")
-        if superficie is None or not 1 <= superficie <= SUPERFICIE_MAX:
-            erreurs.append("La superficie doit être un nombre entier de m² (au moins 1).")
-        if prix is None or not 1 <= prix <= PRIX_MAX:
-            erreurs.append("Le prix doit être un nombre entier de FCFA (au moins 1).")
-        if valeurs["quartier"] not in {str(q["id"]) for q in quartiers}:
-            erreurs.append("Choisissez un quartier dans la liste.")
-        if valeurs["titre_foncier"] not in {str(t["id"]) for t in titres}:
-            erreurs.append("Choisissez un type de titre foncier dans la liste.")
-        if valeurs["type"] not in {str(t["id"]) for t in types}:
-            erreurs.append("Choisissez un type de terrain dans la liste.")
-
-        photos = []
-        fichiers = [f for f in request.files.getlist("photos") if f and f.filename]
-        if len(fichiers) > PHOTOS_MAX:
-            erreurs.append(f"Vous pouvez envoyer {PHOTOS_MAX} photos au maximum.")
-        else:
-            for fichier in fichiers:
-                octets = fichier.read(PHOTO_TAILLE_MAX + 1)
-                extension = type_image(octets)
-                if len(octets) > PHOTO_TAILLE_MAX:
-                    erreurs.append(f"La photo « {fichier.filename} » dépasse 3 Mo.")
-                elif extension is None:
-                    erreurs.append(f"« {fichier.filename} » n'est pas une image JPG, PNG ou WebP.")
-                else:
-                    photos.append((octets, extension))
-
-        en_attente = db.execute(
-            "SELECT COUNT(*) FROM terrain WHERE id_vendeur = ? AND statut = 'en_attente'",
-            (utilisateur["id"],)).fetchone()[0]
-        if en_attente >= MAX_EN_ATTENTE:
-            erreurs.append(f"Vous avez déjà {MAX_EN_ATTENTE} annonces en attente de validation. "
-                           "Attendez qu'elles soient traitées avant d'en publier d'autres.")
-
+        valeurs, erreurs, superficie, prix, photos = lire_formulaire_annonce(quartiers, titres, types)
+        if nb_en_attente(db, utilisateur["id"]) >= MAX_EN_ATTENTE:
+            erreurs.append(message_limite())
         if not erreurs:
             curseur = db.execute(
                 "INSERT INTO terrain (titre, description, superficie, prix, "
@@ -495,20 +551,19 @@ def publier():
                  int(valeurs["quartier"]), int(valeurs["titre_foncier"]), int(valeurs["type"]),
                  utilisateur["id"]),
             )                                          # le statut par défaut est « en_attente »
-            os.makedirs(UPLOAD_DIR, exist_ok=True)
-            for octets, extension in photos:
-                nom_fichier = f"{secrets.token_hex(16)}.{extension}"   # nom aléatoire : jamais celui de l'utilisateur
-                with open(os.path.join(UPLOAD_DIR, nom_fichier), "wb") as f:
-                    f.write(octets)
-                db.execute("INSERT INTO photo (url, id_terrain) VALUES (?, ?)",
-                           (f"/photos/{nom_fichier}", curseur.lastrowid))
+            enregistrer_photos(db, curseur.lastrowid, photos)
             db.commit()
             flash("Votre annonce est enregistrée. Elle sera visible après validation "
                   "par l'administrateur.", "succes")
             return redirect(url_for("mes_annonces"))
     return render_template("publier.html", valeurs=valeurs, erreurs=erreurs,
                            quartiers=quartiers, titres=titres, types=types,
-                           photos_max=PHOTOS_MAX, description_max=DESCRIPTION_MAX)
+                           photos_max=PHOTOS_MAX, description_max=DESCRIPTION_MAX,
+                           titre_page="Publier un terrain",
+                           introduction="Votre annonce est vérifiée par l'administrateur avant d'apparaître "
+                                        "sur le site. Seuls des terrains à Yamoussoukro peuvent être publiés.",
+                           action=url_for("publier"), libelle_bouton="Envoyer pour validation",
+                           photos_existantes=[])
 
 
 @app.route("/mes-annonces")
@@ -524,7 +579,97 @@ def mes_annonces():
                            roles=ROLES_INSCRIPTION)
 
 
-NOM_PHOTO_RE = re.compile(r"^[0-9a-f]{32}\.(jpg|png|webp)$")
+def annonce_du_vendeur(terrain_id):
+    """L'annonce demandée, si elle appartient à l'utilisateur connecté. Sinon : 404."""
+    annonce = get_db().execute(
+        "SELECT * FROM terrain WHERE id = ? AND id_vendeur = ?",
+        (terrain_id, utilisateur_courant()["id"])).fetchone()
+    if annonce is None:
+        abort(404)
+    return annonce
+
+
+@app.route("/annonces/<int:terrain_id>/modifier", methods=["GET", "POST"])
+@connexion_requise
+def modifier_annonce(terrain_id):
+    annonce = annonce_du_vendeur(terrain_id)
+    if annonce["statut"] == "vendu":
+        flash("Une annonce vendue ne peut plus être modifiée.", "info")
+        return redirect(url_for("mes_annonces"))
+    db = get_db()
+    quartiers, titres, types = listes_formulaire(db)
+    photos = db.execute("SELECT id, url FROM photo WHERE id_terrain = ? ORDER BY id",
+                        (terrain_id,)).fetchall()
+    valeurs = {"titre": annonce["titre"], "description": annonce["description"] or "",
+               "superficie": str(annonce["superficie"]), "prix": str(annonce["prix"]),
+               "quartier": str(annonce["id_quartier"]),
+               "titre_foncier": str(annonce["id_type_titre"]),
+               "type": str(annonce["id_type_terrain"])}
+    erreurs = []
+    if request.method == "POST":
+        # Seules les photos de CETTE annonce peuvent être supprimées : on ignore tout autre numéro.
+        a_supprimer = set(request.form.getlist("supprimer_photo")) & {str(p["id"]) for p in photos}
+        valeurs, erreurs, superficie, prix, nouvelles = lire_formulaire_annonce(
+            quartiers, titres, types, photos_gardees=len(photos) - len(a_supprimer))
+        if annonce["statut"] != "en_attente" and nb_en_attente(db, annonce["id_vendeur"]) >= MAX_EN_ATTENTE:
+            erreurs.append(message_limite())      # elle va repasser « en attente »
+        if not erreurs:
+            db.execute(
+                "UPDATE terrain SET titre = ?, description = ?, superficie = ?, prix = ?, "
+                "id_quartier = ?, id_type_titre = ?, id_type_terrain = ?, statut = 'en_attente' "
+                "WHERE id = ?",
+                (valeurs["titre"], valeurs["description"] or None, superficie, prix,
+                 int(valeurs["quartier"]), int(valeurs["titre_foncier"]), int(valeurs["type"]),
+                 terrain_id))
+            urls_supprimees = [p["url"] for p in photos if str(p["id"]) in a_supprimer]
+            for id_photo in a_supprimer:
+                db.execute("DELETE FROM photo WHERE id = ?", (int(id_photo),))
+            enregistrer_photos(db, terrain_id, nouvelles)
+            db.commit()
+            for url in urls_supprimees:
+                supprimer_fichier_photo(url)
+            flash("Annonce modifiée. Elle sera de nouveau vérifiée par l'administrateur "
+                  "avant d'être visible.", "succes")
+            return redirect(url_for("mes_annonces"))
+    return render_template("publier.html", valeurs=valeurs, erreurs=erreurs,
+                           quartiers=quartiers, titres=titres, types=types,
+                           photos_max=PHOTOS_MAX, description_max=DESCRIPTION_MAX,
+                           titre_page="Modifier mon annonce",
+                           introduction="Après modification, l'annonce repasse en validation "
+                                        "et n'est plus visible tant que l'administrateur ne l'a pas approuvée.",
+                           action=url_for("modifier_annonce", terrain_id=terrain_id),
+                           libelle_bouton="Enregistrer les modifications", photos_existantes=photos)
+
+
+@app.route("/annonces/<int:terrain_id>/vendue", methods=["POST"])
+@connexion_requise
+def marquer_vendue(terrain_id):
+    annonce = annonce_du_vendeur(terrain_id)
+    if annonce["statut"] != "publie":
+        flash("Seule une annonce publiée peut être marquée comme vendue.", "info")
+    else:
+        db = get_db()
+        db.execute("UPDATE terrain SET statut = 'vendu' WHERE id = ?", (terrain_id,))
+        db.commit()
+        flash("Annonce marquée comme vendue. Elle n'est plus visible sur le site.", "succes")
+    return redirect(url_for("mes_annonces"))
+
+
+@app.route("/annonces/<int:terrain_id>/supprimer", methods=["GET", "POST"])
+@connexion_requise
+def supprimer_annonce(terrain_id):
+    annonce = annonce_du_vendeur(terrain_id)
+    if request.method == "POST":
+        db = get_db()
+        urls = [ligne["url"] for ligne in
+                db.execute("SELECT url FROM photo WHERE id_terrain = ?", (terrain_id,))]
+        db.execute("DELETE FROM terrain WHERE id = ?", (terrain_id,))   # ses photos partent en cascade
+        db.commit()
+        for url in urls:
+            supprimer_fichier_photo(url)
+        flash("Annonce supprimée définitivement.", "succes")
+        return redirect(url_for("mes_annonces"))
+    return render_template("supprimer_annonce.html", annonce=annonce)
 
 
 @app.route("/photos/<nom_fichier>")
@@ -532,6 +677,76 @@ def photo(nom_fichier):
     if not NOM_PHOTO_RE.match(nom_fichier):
         abort(404)
     return send_from_directory(UPLOAD_DIR, nom_fichier)
+
+
+ANNONCES_EN_ATTENTE = """
+    SELECT t.id, t.titre, t.description, t.superficie, t.prix, t.date_creation,
+           (SELECT url FROM photo WHERE id_terrain = t.id ORDER BY id LIMIT 1) AS photo_url,
+           (SELECT COUNT(*) FROM photo WHERE id_terrain = t.id) AS nb_photos,
+           q.nom  AS quartier,
+           tt.libelle AS titre_foncier,
+           ty.libelle AS type_terrain,
+           u.id   AS id_vendeur,
+           u.nom  AS vendeur,
+           u.role AS vendeur_role,
+           u.verifie AS vendeur_verifie
+    FROM terrain t
+    JOIN quartier     q  ON q.id  = t.id_quartier
+    JOIN type_titre   tt ON tt.id = t.id_type_titre
+    JOIN type_terrain ty ON ty.id = t.id_type_terrain
+    JOIN utilisateur  u  ON u.id  = t.id_vendeur
+    WHERE t.statut = 'en_attente'
+    ORDER BY t.id
+"""
+
+
+@app.route("/admin")
+@admin_requis
+def admin():
+    """Tableau de bord de l'administrateur : annonces à valider et comptes à vérifier."""
+    db = get_db()
+    nombres = {ligne["statut"]: ligne["nb"] for ligne in db.execute(
+        "SELECT statut, COUNT(*) AS nb FROM terrain GROUP BY statut")}
+    comptes = db.execute(
+        "SELECT id, nom, email, role, date_inscription FROM utilisateur "
+        "WHERE verifie = 0 AND role IN ('proprietaire', 'notaire') ORDER BY id").fetchall()
+    return render_template("admin.html", annonces=db.execute(ANNONCES_EN_ATTENTE).fetchall(),
+                           comptes=comptes, nombres=nombres, statuts=STATUTS,
+                           roles=ROLES_INSCRIPTION)
+
+
+@app.route("/admin/annonces/<int:terrain_id>/<action>", methods=["POST"])
+@admin_requis
+def admin_decider(terrain_id, action):
+    nouveaux_statuts = {"valider": "publie", "refuser": "refuse"}
+    if action not in nouveaux_statuts:
+        abort(404)
+    db = get_db()
+    # « AND statut = 'en_attente' » : on ne change pas une annonce déjà traitée
+    curseur = db.execute(
+        "UPDATE terrain SET statut = ? WHERE id = ? AND statut = 'en_attente'",
+        (nouveaux_statuts[action], terrain_id))
+    db.commit()
+    if curseur.rowcount:
+        flash("Annonce publiée." if action == "valider" else "Annonce refusée.", "succes")
+    else:
+        flash("Cette annonce n'est plus en attente.", "info")
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/comptes/<int:utilisateur_id>/verifier", methods=["POST"])
+@admin_requis
+def admin_verifier(utilisateur_id):
+    db = get_db()
+    curseur = db.execute(
+        "UPDATE utilisateur SET verifie = 1 WHERE id = ? AND verifie = 0 "
+        "AND role IN ('proprietaire', 'notaire')", (utilisateur_id,))
+    db.commit()
+    if curseur.rowcount:
+        flash("Compte marqué comme vérifié.", "succes")
+    else:
+        flash("Ce compte n'a pas besoin d'être vérifié.", "info")
+    return redirect(url_for("admin"))
 
 
 # ---------- Erreurs ----------

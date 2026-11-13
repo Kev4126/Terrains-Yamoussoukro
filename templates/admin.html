@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block titre %}Administration · Terrains Yamoussoukro{% endblock %}
+{% block contenu %}
+<h1>Administration</h1>
+
+<ul class="stats">
+  {% for cle, libelle in statuts.items() %}
+  <li><strong>{{ nombres.get(cle, 0) }}</strong><span>{{ libelle }}</span></li>
+  {% endfor %}
+</ul>
+
+<h2 class="titre-section">Annonces en attente ({{ annonces|length }})</h2>
+{% if annonces %}
+<ul class="liste-annonces">
+  {% for a in annonces %}
+  <li class="annonce-admin">
+    {% if a['photo_url'] %}
+    <img class="vignette" src="{{ a['photo_url'] }}" alt="Photo de l'annonce {{ a['titre'] }}">
+    {% else %}
+    <div class="vignette vide-vignette" aria-hidden="true">Pas de photo</div>
+    {% endif %}
+    <div class="annonce-admin-infos">
+      <h3>{{ a['titre'] }}</h3>
+      <p class="details">
+        {{ a['quartier'] }} · {{ a['superficie']|m2 }} · {{ a['prix']|fcfa }} · {{ a['titre_foncier'] }} · {{ a['type_terrain'] }}
+        · {{ a['nb_photos'] }} photo{{ 's' if a['nb_photos'] > 1 }}
+      </p>
+      {% if a['description'] %}<p class="description">{{ a['description'] }}</p>{% endif %}
+      <p class="details">
+        Vendeur : <a href="{{ url_for('profil', utilisateur_id=a['id_vendeur']) }}">{{ a['vendeur'] }}</a>
+        ({{ roles[a['vendeur_role']] }}){% if a['vendeur_verifie'] %} · <span class="badge">Compte vérifié</span>{% else %} · compte non vérifié{% endif %}
+        · ajoutée le {{ a['date_creation'] }}
+      </p>
+      <div class="actions">
+        <form method="post" action="{{ url_for('admin_decider', terrain_id=a['id'], action='valider') }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button class="bouton" type="submit">Valider et publier</button>
+        </form>
+        <form method="post" action="{{ url_for('admin_decider', terrain_id=a['id'], action='refuser') }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button class="bouton secondaire" type="submit">Refuser</button>
+        </form>
+      </div>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="vide"><p>Aucune annonce en attente.</p></div>
+{% endif %}
+
+<h2 class="titre-section espace-haut">Comptes à vérifier ({{ comptes|length }})</h2>
+{% if comptes %}
+<ul class="liste-annonces">
+  {% for c in comptes %}
+  <li class="annonce">
+    <div>
+      <h3>{{ c['nom'] }}</h3>
+      <p class="details">{{ roles[c['role']] }} · {{ c['email'] }} · inscrit le {{ c['date_inscription'] }}</p>
+    </div>
+    <form method="post" action="{{ url_for('admin_verifier', utilisateur_id=c['id']) }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="bouton" type="submit">Marquer comme vérifié</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="vide"><p>Aucun compte à vérifier.</p></div>
+{% endif %}
+{% endblock %}

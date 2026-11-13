@@ -738,6 +738,119 @@ class TestMesAnnonces(BaseTest):
         self.assertEqual(entetes["X-Frame-Options"], "DENY")
 
 
+# ------------------------------------------------------------------ administration
+
+class TestAdmin(BaseTest):
+
+    def poster(self, url):
+        return self.client.post(url, data={"csrf": self.jeton(url="/admin")})
+
+    def statut(self, id_terrain):
+        return self.sql("SELECT statut FROM terrain WHERE id = ?", (id_terrain,))[0][0]
+
+    def test_acces_visiteur_proprietaire_et_administrateur(self):
+        reponse = self.client.get("/admin")
+        self.assertEqual(reponse.status_code, 302)
+        self.assertIn("/connexion", reponse.headers["Location"])
+        self.connecter("proprietaire1@terrains.test")
+        self.assertEqual(self.client.get("/admin").status_code, 403)
+        autre = application.app.test_client()
+        self.connecter("admin@terrains.test", client=autre)
+        self.assertEqual(autre.get("/admin").status_code, 200)
+
+    def test_tableau_de_bord(self):
+        self.connecter("admin@terrains.test")
+        page = self.client.get("/admin").get_data(as_text=True)
+        self.assertIn("Annonces en attente (1)", page)
+        self.assertIn("Lot en attente de validation", page)
+        self.assertIn("Comptes à vérifier (1)", page)
+        self.assertIn("Propriétaire Test 2", page)
+        self.assertIn("En attente de validation", page)           # libellé de la statistique
+
+    def test_annonce_avec_photo_affichee_dans_l_administration(self):
+        self.sql("INSERT INTO photo (url, id_terrain) VALUES ('/photos/test.jpg', 7)")
+        self.connecter("admin@terrains.test")
+        page = self.client.get("/admin").get_data(as_text=True)
+        self.assertIn('src="/photos/test.jpg"', page)
+        self.assertIn("1 photo", page)
+
+    def test_valider_publie_l_annonce(self):
+        self.connecter("admin@terrains.test")
+        self.assertEqual(self.poster("/admin/annonces/7/valider").status_code, 302)
+        self.assertEqual(self.statut(7), "publie")
+        self.assertIn("Annonce publiée.", self.client.get("/admin").get_data(as_text=True))
+        self.assertEqual(self.nb_cartes("/"), 7)
+
+    def test_refuser_masque_l_annonce(self):
+        self.connecter("admin@terrains.test")
+        self.poster("/admin/annonces/7/refuser")
+        self.assertEqual(self.statut(7), "refuse")
+        self.assertIn("Annonce refusée.", self.client.get("/admin").get_data(as_text=True))
+        self.assertEqual(self.nb_cartes("/"), 6)
+
+    def test_annonce_deja_traitee_ou_inexistante_inchangee(self):
+        self.connecter("admin@terrains.test")
+        self.poster("/admin/annonces/1/refuser")                    # l'annonce 1 est déjà publiée
+        self.assertEqual(self.statut(1), "publie")
+        self.assertIn("plus en attente", self.client.get("/admin").get_data(as_text=True))
+        self.poster("/admin/annonces/9999/valider")
+        self.assertEqual(len(self.sql("SELECT id FROM terrain")), 7)
+
+    def test_action_inconnue_et_methode_get(self):
+        self.connecter("admin@terrains.test")
+        self.assertEqual(self.poster("/admin/annonces/7/supprimer").status_code, 404)
+        self.assertEqual(self.statut(7), "en_attente")
+        self.assertEqual(self.client.get("/admin/annonces/7/valider").status_code, 405)
+
+    def test_un_non_administrateur_ne_peut_rien_decider(self):
+        self.connecter("proprietaire1@terrains.test")
+        jeton = self.jeton(url="/mon-compte")
+        reponse = self.client.post("/admin/annonces/7/valider", data={"csrf": jeton})
+        self.assertEqual(reponse.status_code, 403)
+        self.assertEqual(self.statut(7), "en_attente")
+        reponse = self.client.post("/admin/comptes/3/verifier", data={"csrf": jeton})
+        self.assertEqual(reponse.status_code, 403)
+
+    def test_decision_sans_jeton_refusee(self):
+        self.connecter("admin@terrains.test")
+        reponse = self.client.post("/admin/annonces/7/valider", data={})
+        self.assertEqual(reponse.status_code, 400)
+        self.assertEqual(self.statut(7), "en_attente")
+
+    def test_verifier_un_compte(self):
+        self.connecter("admin@terrains.test")
+        self.poster("/admin/comptes/3/verifier")
+        self.assertEqual(self.sql("SELECT verifie FROM utilisateur WHERE id = 3")[0][0], 1)
+        self.assertIn("Compte marqué comme vérifié.", self.client.get("/admin").get_data(as_text=True))
+        self.assertIn("Compte vérifié", self.client.get("/profil/3").get_data(as_text=True))
+
+    def test_verifier_un_compte_inutile_ou_inexistant(self):
+        self.connecter("admin@terrains.test")
+        self.poster("/admin/comptes/2/verifier")                    # déjà vérifié
+        self.assertIn("pas besoin d", self.client.get("/admin").get_data(as_text=True))
+        self.poster("/admin/comptes/1/verifier")                    # l'administrateur lui-même
+        self.poster("/admin/comptes/9999/verifier")
+        self.assertEqual(self.sql("SELECT verifie FROM utilisateur WHERE id = 1")[0][0], 1)
+
+    def test_listes_vides(self):
+        self.sql("UPDATE terrain SET statut = 'publie' WHERE id = 7")
+        self.sql("UPDATE utilisateur SET verifie = 1")
+        self.connecter("admin@terrains.test")
+        page = self.client.get("/admin").get_data(as_text=True)
+        self.assertIn("Aucune annonce en attente.", page)
+        self.assertIn("Aucun compte à vérifier.", page)
+
+    def test_liens_vers_l_administration_selon_le_profil(self):
+        self.assertNotIn("Administration", self.client.get("/").get_data(as_text=True))
+        self.connecter("admin@terrains.test")
+        self.assertIn("Administration", self.client.get("/").get_data(as_text=True))
+        self.assertIn("Espace administrateur", self.client.get("/mon-compte").get_data(as_text=True))
+        autre = application.app.test_client()
+        self.connecter("notaire@terrains.test", client=autre)
+        self.assertNotIn("Administration", autre.get("/").get_data(as_text=True))
+        self.assertNotIn("Espace administrateur", autre.get("/mon-compte").get_data(as_text=True))
+
+
 # ------------------------------------------------------------------ reparer.py
 
 class TestReparer(unittest.TestCase):

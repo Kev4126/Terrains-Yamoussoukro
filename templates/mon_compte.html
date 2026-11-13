@@ -18,6 +18,9 @@
   {% endif %}
   <p class="actions">
     <a class="bouton" href="{{ url_for('modifier_profil') }}">Modifier mon profil</a>
+    {% if utilisateur_courant['role'] == 'administrateur' %}
+    <a class="bouton" href="{{ url_for('admin') }}">Espace administrateur</a>
+    {% endif %}
     {% if utilisateur_courant['role'] != 'administrateur' %}
     <a class="bouton" href="{{ url_for('publier') }}">Publier un terrain</a>
     <a class="bouton secondaire" href="{{ url_for('mes_annonces') }}">Mes annonces</a>
