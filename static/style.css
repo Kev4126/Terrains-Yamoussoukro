@@ -199,3 +199,24 @@ a:focus-visible, .bouton:focus-visible {
 .vignette { width: 160px; height: 120px; object-fit: cover; border-radius: 6px; border: 1px solid var(--trait); }
 .vide-vignette { display: flex; align-items: center; justify-content: center; background: var(--vert-clair); color: var(--vert); font-size: 0.85rem; }
 .annonce-admin .actions form { margin: 0; }
+
+/* --- Amélioration du Header / Navigation --- */
+.site-header {
+  background-color: var(--vert);
+  padding: 15px 30px;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.entete-nav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
