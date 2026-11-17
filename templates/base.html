@@ -7,39 +7,30 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <header class="site-header">
-  <!-- Conteneur pour aligner les éléments de l'en-tête -->
+  <header class="entete">
   <div class="header-container">
-    
-    <!-- Partie Logo / Identité du site -->
     <div class="logo-area">
-      <a class="logo" href="{{ url_for('liste') }}">Terrains Yamoussoukro</a>
-      <span class="entete-note">Annonces vérifiées</span>
+      <a class="logo-lien" href="{{ url_for('liste') }}">
+        <!-- Utilisation de url_for pour pointer vers le dossier static -->
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Terrains Yamoussoukro" class="logo-img">
+      </a>
+      <span class="entete-note">Annonces vérifiées avant publication</span>
     </div>
-
-    <!-- Partie Navigation (<nav>) -->
-    <nav class="entete-nav" aria-label="Menu principal">
-      {% if utilisateur_courant %}
-        {% if utilisateur_courant['role'] == 'administrateur' %}
+    
+    <nav class="entete-nav">
+      {% if session.get('user_id') %}
+        <a href="{{ url_for('profil') }}">Mon profil</a>
+        {% if session.get('role') == 'admin' %}
           <a href="{{ url_for('admin') }}">Administration</a>
         {% endif %}
-        
-        {% if utilisateur_courant['role'] in ('proprietaire', 'notaire') %}
-          <a href="{{ url_for('publier') }}">Publier un terrain</a>
-        {% endif %}
-        
-        <a href="{{ url_for('mon_compte') }}">{{ utilisateur_courant['nom'] }}</a>
-        
-        <form class="form-inline" method="post" action="{{ url_for('deconnexion') }}">
-          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-          <button class="lien-bouton" type="submit">Se déconnecter</button>
+        <form class="form-inline" action="{{ url_for('deconnexion') }}" method="POST" style="display:inline;">
+          <button type="submit" class="lien-bouton">Déconnexion</button>
         </form>
       {% else %}
         <a href="{{ url_for('connexion') }}">Connexion</a>
-        <a class="bouton-clair" href="{{ url_for('inscription') }}">Créer un compte</a>
+        <a href="{{ url_for('inscription') }}" class="bouton-clair">Créer un compte</a>
       {% endif %}
     </nav>
-
   </div>
 </header>
   <main class="contenu">
