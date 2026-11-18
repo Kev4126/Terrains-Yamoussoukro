@@ -271,3 +271,47 @@ a:focus-visible, .bouton:focus-visible {
   align-items: center;
   gap: 20px;
 }
+/* --- Système d'Avis et Étoiles --- */
+.bloc-avis {
+  margin-top: 2rem;
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.etoiles {
+  color: #fbbf24; /* Couleur dorée pour les étoiles */
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+}
+
+.etoiles-input {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 0.3rem;
+  justify-content: flex-end;
+}
+
+.liste-commentaires {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+}
+
+.commentaire-item {
+  border-bottom: 1px solid var(--trait);
+  padding: 1rem 0;
+}
+
+.commentaire-item:last-child {
+  border-bottom: none;
+}
+
+.commentaire-entete {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--texte-doux);
+  margin-bottom: 0.3rem;
+}

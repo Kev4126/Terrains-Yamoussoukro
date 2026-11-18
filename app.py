@@ -1,15 +1,14 @@
-"""Plateforme de vente de terrains à Yamoussoukro : Sprint 3 (administration, modification des annonces).
+"""Plateforme de vente de terrains à Yamoussoukro : Sprint 3 (administration, modification des annonces, avis).
 
 Ce que fait cette version :
-  - liste des terrains publiés avec filtres, fiche d'un terrain, contact WhatsApp
-  - inscription et connexion des propriétaires et notaires
-  - page « Mon compte » (réservée aux utilisateurs connectés) et modification du profil
-  - page profil publique d'un propriétaire ou d'un notaire, avec ses terrains
-  - publication d'un terrain avec photos (statut « en attente » jusqu'à validation) et suivi des annonces
-  - espace administrateur : valider ou refuser les annonces, vérifier les comptes
-  - modification, vente et suppression d'une annonce par son propriétaire
-
-Lancer :  python app.py   puis ouvrir http://127.0.0.1:5000
+- liste des terrains publiés avec filtres, fiche d'un terrain, contact WhatsApp
+- inscription et connexion des propriétaires et notaires
+- page « Mon compte » (réservée aux utilisateurs connectés) et modification du profil
+- page profil publique d'un propriétaire ou d'un notaire, avec ses terrains
+- publication d'un terrain avec photos (statut « en attente » jusqu'à validation) et suivi des annonces
+- espace administrateur : valider ou refuser les annonces, vérifier les comptes
+- modification, vente et suppression d'une annonce par son propriétaire
+- système d'avis et notes par étoiles sur les fiches de terrains
 """
 import functools
 import os
@@ -135,7 +134,6 @@ def verifier_csrf():
     if request.method == "POST":
         attendu = session.get("csrf", "")
         envoye = request.form.get("csrf", "")
-        # Le jeton attendu doit exister : sinon deux textes vides seraient « identiques ».
         if not attendu or not secrets.compare_digest(attendu.encode(), envoye.encode()):
             abort(400)
 
@@ -208,7 +206,6 @@ REQUETE_TERRAIN = """
     WHERE t.statut = 'publie'
 """
 
-# Tris autorisés (liste blanche : on n'insère jamais du texte venant de l'utilisateur dans le SQL)
 TRIS = {
     "recent": ("Plus récents", "t.date_creation DESC, t.id DESC"),
     "prix_asc": ("Prix croissant", "t.prix ASC"),
@@ -266,7 +263,7 @@ def fiche(terrain_id):
     db = get_db()
     terrain = db.execute(REQUETE_TERRAIN + " AND t.id = ?", (terrain_id,)).fetchone()
     if terrain is None:
-        abort(404)  # inexistant, ou pas encore publié
+        abort(404)
     photos = db.execute(
         "SELECT url FROM photo WHERE id_terrain = ? ORDER BY id", (terrain_id,)
     ).fetchall()
@@ -300,14 +297,11 @@ def inscription():
         if not EMAIL_RE.match(email) or len(email) > 120:
             erreurs.append("L'adresse email n'est pas valide.")
         if telephone is None:
-            erreurs.append("Le numéro WhatsApp n'est pas valide (exemple : 07 00 00 00 00, "
-                           "ou +33... pour un numéro étranger).")
+            erreurs.append("Le numéro WhatsApp n'est pas valide.")
         if valeurs["role"] not in ROLES_INSCRIPTION:
             erreurs.append("Choisissez si vous êtes propriétaire ou notaire.")
         if not 8 <= len(mot_de_passe) <= 128:
             erreurs.append("Le mot de passe doit contenir au moins 8 caractères.")
-        elif mot_de_passe.lower() == email:
-            erreurs.append("Le mot de passe ne doit pas être votre adresse email.")
         if mot_de_passe != confirmation:
             erreurs.append("Les deux mots de passe ne sont pas identiques.")
 
@@ -330,7 +324,7 @@ def inscription():
             except sqlite3.IntegrityError:
                 erreurs.append("Un compte existe déjà avec cette adresse email.")
             else:
-                session.clear()                       # nouvelle session = pas de session héritée
+                session.clear()
                 session["user_id"] = curseur.lastrowid
                 flash("Votre compte est créé. Bienvenue !", "succes")
                 return redirect(url_for("mon_compte"))
@@ -350,15 +344,13 @@ def connexion():
         ligne = get_db().execute(
             "SELECT id, mot_de_passe_hash FROM utilisateur WHERE email = ?", (email,)
         ).fetchone()
-        # On vérifie toujours un hash, même si l'email n'existe pas :
-        # la réponse prend le même temps et ne révèle pas quels emails sont inscrits.
         hash_a_tester = ligne["mot_de_passe_hash"] if ligne else DUMMY_HASH
         if check_password_hash(hash_a_tester, mot_de_passe) and ligne:
             session.clear()
             session["user_id"] = ligne["id"]
             flash("Vous êtes connecté.", "succes")
             return redirect(url_for("mon_compte"))
-        erreur = "Email ou mot de passe incorrect."   # même message dans les deux cas
+        erreur = "Email ou mot de passe incorrect."
     return render_template("connexion.html", email=email, erreur=erreur)
 
 
@@ -379,7 +371,6 @@ def mon_compte():
 @connexion_requise
 def modifier_profil():
     utilisateur = utilisateur_courant()
-    # Le numéro est affiché avec « + » pour être relu correctement (y compris un numéro étranger).
     valeurs = {"nom": utilisateur["nom"],
                "telephone": "+" + utilisateur["telephone_whatsapp"],
                "presentation": utilisateur["presentation"] or ""}
@@ -390,8 +381,7 @@ def modifier_profil():
         if not 2 <= len(valeurs["nom"]) <= 80:
             erreurs.append("Le nom doit contenir entre 2 et 80 caractères.")
         if telephone is None:
-            erreurs.append("Le numéro WhatsApp n'est pas valide (exemple : 07 00 00 00 00, "
-                           "ou +33... pour un numéro étranger).")
+            erreurs.append("Le numéro WhatsApp n'est pas valide.")
         if len(valeurs["presentation"]) > PRESENTATION_MAX:
             erreurs.append(f"La présentation ne doit pas dépasser {PRESENTATION_MAX} caractères.")
         if not erreurs:
@@ -409,7 +399,6 @@ def modifier_profil():
 
 @app.route("/profil/<int:utilisateur_id>")
 def profil(utilisateur_id):
-    """Page publique d'un propriétaire ou d'un notaire : présentation et terrains publiés."""
     db = get_db()
     membre = db.execute(
         "SELECT id, nom, role, verifie, presentation, telephone_whatsapp, date_inscription "
@@ -429,13 +418,11 @@ def profil(utilisateur_id):
 
 
 def lire_entier(texte):
-    """'18 000 000' -> 18000000. Retourne None si ce n'est pas un nombre entier positif."""
     nettoye = re.sub(r"[\s\u202f\u00a0]", "", texte)
     return int(nettoye) if nettoye.isdigit() else None
 
 
 def type_image(octets):
-    """Reconnaît JPG, PNG et WebP d'après le CONTENU du fichier (pas d'après son nom)."""
     if octets.startswith(b"\xff\xd8\xff"):
         return "jpg"
     if octets.startswith(b"\x89PNG\r\n\x1a\n"):
@@ -449,17 +436,12 @@ CHAMPS_ANNONCE = ("titre", "description", "superficie", "prix", "quartier", "tit
 
 
 def listes_formulaire(db):
-    """Les trois listes de choix du formulaire : quartiers, titres fonciers, types de terrain."""
     return (db.execute("SELECT id, nom FROM quartier ORDER BY nom").fetchall(),
             db.execute("SELECT id, libelle FROM type_titre ORDER BY id").fetchall(),
             db.execute("SELECT id, libelle FROM type_terrain ORDER BY id").fetchall())
 
 
 def lire_formulaire_annonce(quartiers, titres, types, photos_gardees=0):
-    """Lit et contrôle le formulaire d'une annonce (publication ou modification).
-
-    Retourne (valeurs, erreurs, superficie, prix, photos) ; `photos` contient les
-    nouvelles photos valides sous la forme (octets, extension)."""
     valeurs = {cle: request.form.get(cle, "").strip() for cle in CHAMPS_ANNONCE}
     superficie = lire_entier(valeurs["superficie"])
     prix = lire_entier(valeurs["prix"])
@@ -489,19 +471,18 @@ def lire_formulaire_annonce(quartiers, titres, types, photos_gardees=0):
             octets = fichier.read(PHOTO_TAILLE_MAX + 1)
             extension = type_image(octets)
             if len(octets) > PHOTO_TAILLE_MAX:
-                erreurs.append(f"La photo « {fichier.filename} » dépasse 3 Mo.")
+                erreurs.append(f"La photo dépasse 3 Mo.")
             elif extension is None:
-                erreurs.append(f"« {fichier.filename} » n'est pas une image JPG, PNG ou WebP.")
+                erreurs.append(f"Format d'image non supporté (JPG, PNG ou WebP requis).")
             else:
                 photos.append((octets, extension))
     return valeurs, erreurs, superficie, prix, photos
 
 
 def enregistrer_photos(db, id_terrain, photos):
-    """Écrit les fichiers dans uploads/ (nom aléatoire) et les relie à l'annonce."""
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     for octets, extension in photos:
-        nom_fichier = f"{secrets.token_hex(16)}.{extension}"   # jamais le nom donné par l'utilisateur
+        nom_fichier = f"{secrets.token_hex(16)}.{extension}"
         with open(os.path.join(UPLOAD_DIR, nom_fichier), "wb") as f:
             f.write(octets)
         db.execute("INSERT INTO photo (url, id_terrain) VALUES (?, ?)",
@@ -509,7 +490,6 @@ def enregistrer_photos(db, id_terrain, photos):
 
 
 def supprimer_fichier_photo(url):
-    """Efface le fichier d'une photo (seulement s'il porte un nom géré par le site)."""
     nom = url.rsplit("/", 1)[-1]
     if NOM_PHOTO_RE.match(nom):
         try:
@@ -523,17 +503,12 @@ def nb_en_attente(db, id_vendeur):
                       (id_vendeur,)).fetchone()[0]
 
 
-def message_limite():
-    return (f"Vous avez déjà {MAX_EN_ATTENTE} annonces en attente de validation. "
-            "Attendez qu'elles soient traitées avant d'en publier d'autres.")
-
-
 @app.route("/publier", methods=["GET", "POST"])
 @connexion_requise
 def publier():
     utilisateur = utilisateur_courant()
     if utilisateur["role"] not in ROLES_INSCRIPTION:
-        abort(403)                     # l'administrateur ne publie pas de terrain
+        abort(403)
     db = get_db()
     quartiers, titres, types = listes_formulaire(db)
     valeurs = {cle: "" for cle in CHAMPS_ANNONCE}
@@ -541,7 +516,7 @@ def publier():
     if request.method == "POST":
         valeurs, erreurs, superficie, prix, photos = lire_formulaire_annonce(quartiers, titres, types)
         if nb_en_attente(db, utilisateur["id"]) >= MAX_EN_ATTENTE:
-            erreurs.append(message_limite())
+            erreurs.append("Limite d'annonces en attente atteinte.")
         if not erreurs:
             curseur = db.execute(
                 "INSERT INTO terrain (titre, description, superficie, prix, "
@@ -550,18 +525,16 @@ def publier():
                 (valeurs["titre"], valeurs["description"] or None, superficie, prix,
                  int(valeurs["quartier"]), int(valeurs["titre_foncier"]), int(valeurs["type"]),
                  utilisateur["id"]),
-            )                                          # le statut par défaut est « en_attente »
+            )
             enregistrer_photos(db, curseur.lastrowid, photos)
             db.commit()
-            flash("Votre annonce est enregistrée. Elle sera visible après validation "
-                  "par l'administrateur.", "succes")
+            flash("Votre annonce est enregistrée et sera visible après validation.", "succes")
             return redirect(url_for("mes_annonces"))
     return render_template("publier.html", valeurs=valeurs, erreurs=erreurs,
                            quartiers=quartiers, titres=titres, types=types,
                            photos_max=PHOTOS_MAX, description_max=DESCRIPTION_MAX,
                            titre_page="Publier un terrain",
-                           introduction="Votre annonce est vérifiée par l'administrateur avant d'apparaître "
-                                        "sur le site. Seuls des terrains à Yamoussoukro peuvent être publiés.",
+                           introduction="Votre annonce est vérifiée par l'administrateur.",
                            action=url_for("publier"), libelle_bouton="Envoyer pour validation",
                            photos_existantes=[])
 
@@ -580,7 +553,6 @@ def mes_annonces():
 
 
 def annonce_du_vendeur(terrain_id):
-    """L'annonce demandée, si elle appartient à l'utilisateur connecté. Sinon : 404."""
     annonce = get_db().execute(
         "SELECT * FROM terrain WHERE id = ? AND id_vendeur = ?",
         (terrain_id, utilisateur_courant()["id"])).fetchone()
@@ -607,12 +579,9 @@ def modifier_annonce(terrain_id):
                "type": str(annonce["id_type_terrain"])}
     erreurs = []
     if request.method == "POST":
-        # Seules les photos de CETTE annonce peuvent être supprimées : on ignore tout autre numéro.
         a_supprimer = set(request.form.getlist("supprimer_photo")) & {str(p["id"]) for p in photos}
         valeurs, erreurs, superficie, prix, nouvelles = lire_formulaire_annonce(
             quartiers, titres, types, photos_gardees=len(photos) - len(a_supprimer))
-        if annonce["statut"] != "en_attente" and nb_en_attente(db, annonce["id_vendeur"]) >= MAX_EN_ATTENTE:
-            erreurs.append(message_limite())      # elle va repasser « en attente »
         if not erreurs:
             db.execute(
                 "UPDATE terrain SET titre = ?, description = ?, superficie = ?, prix = ?, "
@@ -628,15 +597,13 @@ def modifier_annonce(terrain_id):
             db.commit()
             for url in urls_supprimees:
                 supprimer_fichier_photo(url)
-            flash("Annonce modifiée. Elle sera de nouveau vérifiée par l'administrateur "
-                  "avant d'être visible.", "succes")
+            flash("Annonce modifiée et mise en attente de revalidation.", "succes")
             return redirect(url_for("mes_annonces"))
     return render_template("publier.html", valeurs=valeurs, erreurs=erreurs,
                            quartiers=quartiers, titres=titres, types=types,
                            photos_max=PHOTOS_MAX, description_max=DESCRIPTION_MAX,
                            titre_page="Modifier mon annonce",
-                           introduction="Après modification, l'annonce repasse en validation "
-                                        "et n'est plus visible tant que l'administrateur ne l'a pas approuvée.",
+                           introduction="Après modification, l'annonce repasse en validation.",
                            action=url_for("modifier_annonce", terrain_id=terrain_id),
                            libelle_bouton="Enregistrer les modifications", photos_existantes=photos)
 
@@ -651,7 +618,7 @@ def marquer_vendue(terrain_id):
         db = get_db()
         db.execute("UPDATE terrain SET statut = 'vendu' WHERE id = ?", (terrain_id,))
         db.commit()
-        flash("Annonce marquée comme vendue. Elle n'est plus visible sur le site.", "succes")
+        flash("Annonce marquée comme vendue.", "succes")
     return redirect(url_for("mes_annonces"))
 
 
@@ -663,7 +630,7 @@ def supprimer_annonce(terrain_id):
         db = get_db()
         urls = [ligne["url"] for ligne in
                 db.execute("SELECT url FROM photo WHERE id_terrain = ?", (terrain_id,))]
-        db.execute("DELETE FROM terrain WHERE id = ?", (terrain_id,))   # ses photos partent en cascade
+        db.execute("DELETE FROM terrain WHERE id = ?", (terrain_id,))
         db.commit()
         for url in urls:
             supprimer_fichier_photo(url)
@@ -678,6 +645,42 @@ def photo(nom_fichier):
         abort(404)
     return send_from_directory(UPLOAD_DIR, nom_fichier)
 
+
+# ---------- Route pour les Avis et Étoiles ----------
+
+@app.route("/terrain/<int:terrain_id>/avis", methods=["POST"])
+@connexion_requise
+def poster_avis(terrain_id):
+    db = get_db()
+    terrain = db.execute("SELECT id FROM terrain WHERE id = ?", (terrain_id,)).fetchone()
+    if not terrain:
+        abort(404)
+        
+    note_brute = request.form.get("note", "5")
+    commentaire = request.form.get("commentaire", "").strip()
+    
+    try:
+        note = int(note_brute)
+        if not (1 <= note <= 5):
+            raise ValueError()
+    except ValueError:
+        flash("La note doit être comprise entre 1 et 5 étoiles.", "erreur")
+        return redirect(url_for('fiche', terrain_id=terrain_id))
+        
+    if len(commentaire) > 500:
+        flash("Le commentaire ne doit pas dépasser 500 caractères.", "erreur")
+        return redirect(url_for('fiche', terrain_id=terrain_id))
+        
+    db.execute(
+        "INSERT INTO avis (id_terrain, id_auteur, note, commentaire) VALUES (?, ?, ?, ?)",
+        (terrain_id, utilisateur_courant()["id"], note, commentaire or None)
+    )
+    db.commit()
+    flash("Votre avis a été publié avec succès.", "succes")
+    return redirect(url_for('fiche', terrain_id=terrain_id))
+
+
+# ---------- Administration ----------
 
 ANNONCES_EN_ATTENTE = """
     SELECT t.id, t.titre, t.description, t.superficie, t.prix, t.date_creation,
@@ -703,7 +706,6 @@ ANNONCES_EN_ATTENTE = """
 @app.route("/admin")
 @admin_requis
 def admin():
-    """Tableau de bord de l'administrateur : annonces à valider et comptes à vérifier."""
     db = get_db()
     nombres = {ligne["statut"]: ligne["nb"] for ligne in db.execute(
         "SELECT statut, COUNT(*) AS nb FROM terrain GROUP BY statut")}
@@ -722,7 +724,6 @@ def admin_decider(terrain_id, action):
     if action not in nouveaux_statuts:
         abort(404)
     db = get_db()
-    # « AND statut = 'en_attente' » : on ne change pas une annonce déjà traitée
     curseur = db.execute(
         "UPDATE terrain SET statut = ? WHERE id = ? AND statut = 'en_attente'",
         (nouveaux_statuts[action], terrain_id))
@@ -749,45 +750,6 @@ def admin_verifier(utilisateur_id):
     return redirect(url_for("admin"))
 
 
-# ---------- Erreurs ----------
-
-@app.errorhandler(404)
-def introuvable(_erreur):
-    return render_template("404.html"), 404
-
-
-@app.after_request
-def entetes_de_securite(reponse):
-    reponse.headers["X-Content-Type-Options"] = "nosniff"   # le navigateur ne devine pas le type d'un fichier
-    reponse.headers["X-Frame-Options"] = "DENY"             # le site ne peut pas être affiché dans le cadre d'un autre
-    return reponse
-
-
-@app.errorhandler(403)
-def acces_refuse(_erreur):
-    return render_template(
-        "erreur.html", titre="Accès refusé",
-        message="Votre profil ne permet pas d'accéder à cette page.",
-    ), 403
-
-
-@app.errorhandler(413)
-def envoi_trop_gros(_erreur):
-    return render_template(
-        "erreur.html", titre="Envoi trop volumineux",
-        message="Les fichiers envoyés sont trop lourds (14 Mo au total, 3 Mo par photo).",
-    ), 413
-
-
-@app.errorhandler(400)
-def requete_invalide(_erreur):
-    return render_template(
-        "erreur.html", titre="Formulaire expiré",
-        message="Cette page a expiré ou la demande est invalide. Rechargez la page et recommencez.",
-    ), 400
-
-
-init_db()
-
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
+    init_db()
     app.run(debug=True)

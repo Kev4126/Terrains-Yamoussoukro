@@ -58,3 +58,13 @@ CREATE TABLE photo (
     url        TEXT NOT NULL,
     id_terrain INTEGER NOT NULL REFERENCES terrain(id) ON DELETE CASCADE
 );
+CREATE TABLE avis (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_terrain INTEGER NOT NULL,
+    id_auteur INTEGER NOT NULL,
+    note INTEGER NOT NULL CHECK(note BETWEEN 1 AND 5),
+    commentaire TEXT,
+    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_terrain) REFERENCES terrain(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_auteur) REFERENCES utilisateur(id) ON DELETE CASCADE
+);
