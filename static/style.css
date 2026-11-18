@@ -45,15 +45,53 @@ a:focus-visible, .bouton:focus-visible {
 .intro { color: var(--texte-doux); margin: 0.5rem 0 1.5rem; min-height: 1.5rem; max-width: 60ch; }
 
 .grille {
-  list-style: none; margin: 0; padding: 0;
-  display: grid; gap: 1.25rem;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 25px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 }
-.carte { background: var(--carte); border: 1px solid var(--trait); border-radius: 8px; overflow: hidden; }
-.carte:hover { border-color: var(--vert); }
-.carte-lien { display: block; color: inherit; text-decoration: none; height: 100%; }
-.carte-corps { padding: 0.9rem 1rem 1.1rem; }
-.carte-corps h2 { margin-bottom: 0.4rem; }
+
+.carte {
+  background-color: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.carte:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-color: var(--vert);
+}
+
+.carte-lien {
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+  height: 100%;
+}
+
+.carte-corps {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.carte-corps h2 {
+  margin-bottom: 0.4rem;
+  font-family: Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--texte);
+}
 
 /* Visuel de remplacement tant qu'il n'y a pas de photo : une parcelle dessinée en CSS */
 .parcelle {
@@ -219,75 +257,4 @@ a:focus-visible, .bouton:focus-visible {
   display: flex;
   align-items: center;
   gap: 20px;
-}
-/* --- Grille et Cartes de terrains modernes --- */
-.grille-terrains {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 25px;
-  margin-top: 2rem;
-}
-
-.carte-terrain {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  display: flex;
-  flex-direction: column;
-}
-
-.carte-terrain:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-.carte-image {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  background-color: #edf2f7;
-}
-
-.carte-contenu {
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-}
-
-.carte-quartier {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #1b4d3e; /* Vert de votre charte */
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.3rem;
-}
-
-.carte-titre {
-  font-family: Georgia, serif;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #1a202c;
-  margin: 0 0 0.75rem 0;
-}
-
-.carte-details {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid #edf2f7;
-  font-size: 0.95rem;
-  color: #4a5568;
-}
-
-.carte-prix {
-  font-weight: 700;
-  color: #1b4d3e;
-  font-size: 1.1rem;
 }
