@@ -16,14 +16,14 @@
       </a>
       <span class="entete-note">Annonces vérifiées avant publication</span>
     </div>
-    
-    <nav class="entete-nav">
-      {% if session.get('user_id') %}
-        <a href="{{ url_for('profil') }}">Mon profil</a>
-        {% if session.get('role') == 'admin' %}
+        <nav class="entete-nav">
+      {% if utilisateur_courant %}
+        <a href="{{ url_for('mon_compte') }}">Mon profil</a>
+        {% if utilisateur_courant['role'] == 'administrateur' %}
           <a href="{{ url_for('admin') }}">Administration</a>
         {% endif %}
-        <form class="form-inline" action="{{ url_for('deconnexion') }}" method="POST" style="display:inline;">
+        <form class="form-inline" action="{{ url_for('deconnexion') }}" method="POST">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
           <button type="submit" class="lien-bouton">Déconnexion</button>
         </form>
       {% else %}
