@@ -61,13 +61,24 @@ app.secret_key = charger_cle_secrete()
 # ---------- Base de données ----------
 
 def init_db():
-    """Crée terrains.db à partir de schema.sql et donnees_initiales.sql si elle n'existe pas."""
-    if os.path.exists(DB_PATH):
-        return
+    """Crée la base ou applique les migrations légères aux bases existantes."""
+    nouvelle_base = not os.path.exists(DB_PATH)
     conn = sqlite3.connect(DB_PATH)
-    for fichier in ("schema.sql", "donnees_initiales.sql"):
-        with open(os.path.join(BASE_DIR, fichier), encoding="utf-8") as f:
-            conn.executescript(f.read())
+    if nouvelle_base:
+        for fichier in ("schema.sql", "donnees_initiales.sql"):
+            with open(os.path.join(BASE_DIR, fichier), encoding="utf-8") as f:
+                conn.executescript(f.read())
+    # Les versions déployées avant les avis possèdent déjà une base, mais pas cette table.
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS avis (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_terrain INTEGER NOT NULL REFERENCES terrain(id) ON DELETE CASCADE,
+            id_auteur INTEGER NOT NULL REFERENCES utilisateur(id) ON DELETE CASCADE,
+            note INTEGER NOT NULL CHECK(note BETWEEN 1 AND 5),
+            commentaire TEXT,
+            date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     conn.commit()
     conn.close()
 
