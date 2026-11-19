@@ -327,8 +327,8 @@ a:focus-visible, .bouton:focus-visible {
 .entete-nav a { text-decoration: none; font-weight: 600; font-size: .94rem; }
 .contenu { max-width: 1200px; padding-top: 1.25rem; }
 
-.hero { min-height: 430px; margin: .25rem 0 1.25rem; border-radius: 20px; overflow: hidden; color: #fff; background: linear-gradient(115deg, #0d3d30 0%, #14513f 50%, #237056 100%); display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(330px, .92fr); align-items: center; }
-.hero-texte { padding: clamp(2.5rem, 6vw, 5rem); position: relative; z-index: 1; }
+.hero { min-height: 500px; margin: .25rem 0 1.25rem; border-radius: 20px; overflow: hidden; color: #fff; position: relative; display: flex; align-items: center; background: linear-gradient(90deg, rgba(5, 37, 27, .92) 0%, rgba(10, 64, 45, .73) 46%, rgba(9, 45, 31, .18) 100%), url("hero-terrain.jpg") center 48% / cover no-repeat; }
+.hero-texte { padding: clamp(2.5rem, 6vw, 5rem); position: relative; z-index: 1; max-width: 760px; }
 .surtitre { color: #c9e6d8; font-weight: 700; font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; margin: 0 0 .9rem; }
 .hero h1 { max-width: 12ch; font-size: clamp(2.25rem, 5vw, 4.35rem); letter-spacing: -.035em; }
 .hero-texte > p:not(.surtitre) { max-width: 52ch; margin: 1.2rem 0 1.8rem; color: #e2f0e9; font-size: 1.06rem; }
@@ -337,16 +337,6 @@ a:focus-visible, .bouton:focus-visible {
 .bouton:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.16); }
 .bouton-ocre { background: #d79b37; color: #17231e; }
 .lien-hero { color: #fff; font-weight: 700; }
-.hero-visuel { height: 100%; min-height: 430px; position: relative; overflow: hidden; background: linear-gradient(180deg, #c1e3d7 0%, #eaf4e8 53%, #a9c9a0 54%, #6c9d70 100%); }
-.soleil { position: absolute; width: 110px; height: 110px; border-radius: 50%; background: #f5ca70; top: 14%; right: 22%; box-shadow: 0 0 0 17px rgba(255,255,255,.22); }
-.colline { position: absolute; bottom: -32px; width: 130%; height: 52%; border-radius: 50% 50% 0 0; }
-.colline-1 { left: -55%; background: #4c8565; transform: rotate(5deg); }
-.colline-2 { right: -55%; height: 43%; background: #326d52; transform: rotate(-4deg); }
-.maison { width: 168px; height: 110px; background: #f7f0df; position: absolute; bottom: 22%; left: 32%; border-radius: 5px 5px 0 0; box-shadow: 0 13px 15px rgba(17,62,44,.18); }
-.maison:before { content:""; position:absolute; left:-18px; top:-76px; border-left:102px solid transparent; border-right:102px solid transparent; border-bottom:80px solid #b96c45; }
-.maison:after { content:""; position:absolute; width:31px; height:53px; bottom:0; left:68px; background:#31533f; }
-.maison i, .maison b { position:absolute; width:27px; height:25px; top:30px; background:#9bd0d1; border:4px solid #fff; z-index:1; }
-.maison i { left:25px; }.maison b { right:25px; }
 .points-confiance { margin: 0 0 4.5rem; padding: 1.1rem; display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; background: #fff; border: 1px solid var(--trait); border-radius: 12px; box-shadow: 0 8px 22px rgba(17,44,33,.05); }
 .points-confiance div { display:flex; gap:.65rem; align-items:center; padding:.45rem .6rem; }
 .points-confiance strong { width:33px; height:33px; display:grid; place-items:center; border-radius:50%; background:var(--vert-clair); color:var(--vert); }
@@ -357,7 +347,7 @@ a:focus-visible, .bouton:focus-visible {
 
 @media (max-width: 720px) {
   .header-container { min-height: 64px; padding: .55rem 1rem; }.entete-nav { gap:.55rem .85rem; }.entete-nav a:first-child { display:none; }
-  .hero { grid-template-columns:1fr; min-height:unset; }.hero-texte { padding:2.75rem 1.5rem; }.hero h1 { font-size:2.45rem; }.hero-visuel { min-height:240px; }.maison { transform:scale(.72); transform-origin:bottom left; left:30%; bottom:11%; }.soleil { transform:scale(.65); transform-origin:top right; }
+  .hero { min-height:440px; background-position:58% center; }.hero-texte { padding:2.75rem 1.5rem; }.hero h1 { font-size:2.45rem; }
   .points-confiance { grid-template-columns:1fr; margin-bottom:3rem; }.annonces-intro { display:block; }.annonces-intro > p { margin-top:.65rem; }
   .grille { grid-template-columns:1fr; gap:1rem; }.filtres { grid-template-columns:1fr; }.champ.boutons { padding-top:.2rem; }
 }
