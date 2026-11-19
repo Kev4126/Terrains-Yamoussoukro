@@ -1,6 +1,28 @@
 {% extends "base.html" %}
 {% block contenu %}
-<h1>Terrains à vendre à Yamoussoukro</h1>
+<section class="hero" aria-labelledby="titre-principal">
+  <div class="hero-texte">
+    <p class="surtitre">L’immobilier foncier, en toute confiance</p>
+    <h1 id="titre-principal">Trouvez le terrain qui donne vie à votre projet.</h1>
+    <p>Des annonces sélectionnées à Yamoussoukro, avec des propriétaires et notaires identifiés.</p>
+    <div class="hero-actions">
+      <a class="bouton bouton-ocre" href="#annonces">Voir les terrains</a>
+      {% if not utilisateur_courant %}<a class="lien-hero" href="{{ url_for('inscription') }}">Publier une annonce →</a>{% endif %}
+    </div>
+  </div>
+  <div class="hero-visuel" aria-hidden="true"><div class="soleil"></div><div class="colline colline-1"></div><div class="colline colline-2"></div><div class="maison"><i></i><b></b></div></div>
+</section>
+
+<section class="points-confiance" aria-label="Nos engagements">
+  <div><strong>✓</strong><span><b>Annonces vérifiées</b>Publication validée avant diffusion</span></div>
+  <div><strong>⌖</strong><span><b>100% local</b>Des terrains à Yamoussoukro</span></div>
+  <div><strong>◌</strong><span><b>Contact direct</b>Échangez facilement avec le vendeur</span></div>
+</section>
+
+<section class="annonces-intro" id="annonces" aria-labelledby="titre-annonces">
+  <div><p class="surtitre">Des opportunités pour chaque projet</p><h2 id="titre-annonces">Terrains disponibles</h2></div>
+  <p>Filtrez les annonces selon votre budget, la superficie ou le titre foncier.</p>
+</section>
 
 <form class="filtres" method="get" action="{{ url_for('liste') }}">
   <div class="champ">
@@ -52,7 +74,7 @@
   </div>
 </form>
 
-<p class="intro">
+<p class="intro" aria-live="polite">
   {% if terrains %}
     {{ terrains|length }} terrain{{ 's' if terrains|length > 1 }}
     {{ 'correspondent à vos critères' if filtres_actifs and terrains|length > 1 else ('correspond à vos critères' if filtres_actifs else 'disponible' ~ ('s' if terrains|length > 1 else '')) }}.

@@ -8,11 +8,13 @@
     <div class="carte-corps">
       <h2>{{ t['titre'] }}</h2>
       <p class="prix">{{ t['prix']|fcfa }}</p>
-      <p class="details">{{ t['superficie']|m2 }} · {{ (t['prix'] // t['superficie'])|fcfa }} le m²</p>
+      <p class="localisation">⌖ {{ t['quartier'] }}, {{ t['ville'] }}</p>
+      <p class="details">{{ t['superficie']|m2 }} · {{ (t['prix'] // t['superficie'])|fcfa }} / m²</p>
       <p class="badges">
         <span class="badge">{{ t['titre_foncier'] }}</span>
         <span class="badge neutre">{{ t['type_terrain'] }}</span>
       </p>
+      <span class="voir-annonce">Voir l’annonce <span aria-hidden="true">→</span></span>
     </div>
   </a>
 </li>

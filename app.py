@@ -19,6 +19,7 @@ from urllib.parse import quote
 
 from flask import (Flask, abort, flash, g, redirect, render_template, request,
                    send_from_directory, session, url_for)
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -38,8 +39,10 @@ STATUTS = {"en_attente": "En attente de validation", "publie": "Publiée",
            "refuse": "Refusée", "vendu": "Vendue"}
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"   # le cookie de connexion n'est pas envoyé depuis d'autres sites
 app.config["SESSION_COOKIE_HTTPONLY"] = True    # inaccessible au JavaScript
+app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("RENDER"))
 app.config["MAX_CONTENT_LENGTH"] = 14 * 1024 * 1024   # taille maximale d'un envoi (4 photos + formulaire)
 
 
@@ -67,6 +70,45 @@ def init_db():
             conn.executescript(f.read())
     conn.commit()
     conn.close()
+
+
+@app.after_request
+def ajouter_entetes_securite(reponse):
+    """Réduit les risques XSS, clickjacking et interprétation de fichiers."""
+    reponse.headers["X-Content-Type-Options"] = "nosniff"
+    reponse.headers["X-Frame-Options"] = "DENY"
+    reponse.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    reponse.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    reponse.headers["Content-Security-Policy"] = (
+        "default-src 'self'; img-src 'self' data: https:; style-src 'self'; "
+        "script-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    )
+    if os.environ.get("RENDER"):
+        reponse.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return reponse
+
+
+@app.errorhandler(400)
+def erreur_requete(_erreur):
+    return render_template("erreur.html", titre="Requête refusée",
+                           message="Le formulaire est expiré ou invalide. Rechargez la page et réessayez."), 400
+
+
+@app.errorhandler(403)
+def erreur_interdit(_erreur):
+    return render_template("erreur.html", titre="Accès non autorisé",
+                           message="Vous n’avez pas l’autorisation d’accéder à cette page."), 403
+
+
+@app.errorhandler(404)
+def erreur_introuvable(_erreur):
+    return render_template("404.html"), 404
+
+
+@app.errorhandler(413)
+def erreur_fichier_trop_lourd(_erreur):
+    return render_template("erreur.html", titre="Envoi trop volumineux",
+                           message="Les photos envoyées dépassent la taille maximale autorisée."), 413
 
 
 def get_db():
@@ -267,13 +309,21 @@ def fiche(terrain_id):
     photos = db.execute(
         "SELECT url FROM photo WHERE id_terrain = ? ORDER BY id", (terrain_id,)
     ).fetchall()
+    
+    # Récupération des avis pour ce terrain
+    avis_terrain = db.execute(
+        "SELECT a.*, u.nom AS auteur FROM avis a JOIN utilisateur u ON u.id = a.id_auteur WHERE a.id_terrain = ? ORDER BY a.id DESC",
+        (terrain_id,)
+    ).fetchall()
+
     message = (
         f"Bonjour, je suis intéressé par le terrain « {terrain['titre']} » "
         f"({terrain['quartier']}) vu sur Terrains Yamoussoukro."
     )
     whatsapp_url = f"https://wa.me/{terrain['telephone']}?text={quote(message)}"
+    
     return render_template(
-        "terrain.html", terrain=terrain, photos=photos, whatsapp_url=whatsapp_url
+        "terrain.html", terrain=terrain, photos=photos, whatsapp_url=whatsapp_url, avis_terrain=avis_terrain
     )
 
 
@@ -750,6 +800,7 @@ def admin_verifier(utilisateur_id):
     return redirect(url_for("admin"))
 
 
+init_db()
+
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)
